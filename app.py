@@ -187,6 +187,48 @@ def main():
         st.markdown("### Sample of Filtered Data")
         st.dataframe(filtered_df.head(20))
 
+    # -------------------
+    # TAB 2: TIME & GENRE ANALYSIS
+    # -------------------
+    with tab2:
+        st.subheader("📈 Global Sales Over Time")
+
+        import plotly.express as px
+
+        # 1) Line Chart: Year vs Global Sales (basit ama anlamlı)
+        yearly_sales = (
+            filtered_df.groupby("Year", as_index=False)["Global_Sales"]
+            .sum()
+            .sort_values("Year")
+        )
+
+        fig_line = px.line(
+            yearly_sales,
+            x="Year",
+            y="Global_Sales",
+            markers=True,
+            title="Global Sales by Year",
+        )
+        fig_line.update_layout(hovermode="x unified")
+        st.plotly_chart(fig_line, use_container_width=True)
+
+        # 2) Genre bazlı yıllık satış – stacked area veya bar
+        st.subheader("🎭 Genre-wise Sales Over Time")
+
+        genre_year = (
+            filtered_df.groupby(["Year", "Genre"], as_index=False)["Global_Sales"]
+            .sum()
+        )
+
+        fig_area = px.area(
+            genre_year,
+            x="Year",
+            y="Global_Sales",
+            color="Genre",
+            title="Genre-wise Global Sales Over Time",
+        )
+        st.plotly_chart(fig_area, use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
