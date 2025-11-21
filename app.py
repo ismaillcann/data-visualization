@@ -158,7 +158,34 @@ def main():
 
     st.sidebar.markdown(f"**Filtered rows:** {len(filtered_df)}")
 
-    st.write("Filters applied! Data ready for visualization.")
+    # ===========
+    # MAIN TABS
+    # ===========
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "Overview",
+        "Sales by Time & Genre",
+        "Top Games & Distributions",
+        "Advanced Visualizations"
+    ])
+
+    # -------------------
+    # TAB 1: OVERVIEW
+    # -------------------
+    with tab1:
+        st.subheader("Dataset Overview")
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Games (filtered)", len(filtered_df))
+        with col2:
+            st.metric("Distinct Platforms", filtered_df["Platform"].nunique())
+        with col3:
+            st.metric("Distinct Genres", filtered_df["Genre"].nunique())
+        with col4:
+            st.metric("Total Global Sales (M)", round(filtered_df["Global_Sales"].sum(), 2))
+
+        st.markdown("### Sample of Filtered Data")
+        st.dataframe(filtered_df.head(20))
 
 
 if __name__ == "__main__":
