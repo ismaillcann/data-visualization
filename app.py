@@ -344,6 +344,60 @@ def main():
         )
         st.plotly_chart(fig_pc, use_container_width=True)
 
+        # 7) Correlation Heatmap (sales kolonları arası ilişki)
+        st.markdown("#### Correlation Heatmap: Sales Variables")
+
+        corr_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales", "Total_Regional_Sales"]
+        corr_df = filtered_df[corr_cols].corr()
+
+        fig_heatmap = px.imshow(
+            corr_df,
+            text_auto=True,
+            aspect="auto",
+            title="Correlation Heatmap of Sales Columns",
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+
+        # 8) Scatter Matrix: çok boyutlu satış ilişkileri
+        st.markdown("#### Scatter Matrix: Regional Sales Relationships")
+
+        sm_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
+        sm_source = filtered_df[["Genre"] + sm_cols].dropna()
+
+        if sm_source.empty:
+            st.info("Scatter matrix için yeterli veri bulunamadı.")
+        else:
+            sm_sample = sm_source.sample(min(400, len(sm_source)), random_state=42)
+            fig_scatter_matrix = px.scatter_matrix(
+                sm_sample,
+                dimensions=sm_cols,
+                color="Genre",
+                title="Scatter Matrix of Regional and Global Sales",
+                height=900,
+                width=900,
+                opacity=0.75,
+            )
+            fig_scatter_matrix.update_layout(dragmode="select")
+            fig_scatter_matrix.for_each_xaxis(lambda ax: ax.update(side="bottom"))
+            st.plotly_chart(fig_scatter_matrix, use_container_width=True)
+
+        # 9) Sunburst: Genre → Platform hiyerarşisi
+        st.markdown("#### Sunburst: Genre → Platform Sales Structure")
+
+        sunburst_df = (
+            filtered_df.groupby(["Genre", "Platform"], as_index=False)["Global_Sales"]
+            .sum()
+        )
+
+        fig_sunburst = px.sunburst(
+            sunburst_df,
+            path=["Genre", "Platform"],
+            values="Global_Sales",
+            title="Sunburst of Global Sales by Genre and Platform",
+        )
+        fig_sunburst.update_layout(width=900, height=700)
+        st.plotly_chart(fig_sunburst, use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
