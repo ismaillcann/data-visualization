@@ -324,23 +324,71 @@ def main():
         # Sadece birkaç oyun alalım, yoksa grafik karışır
         pc_df = filtered_df.sort_values("Global_Sales", ascending=False).head(200)
 
-        # Parallel coordinates için sadece satış kolonlarını kullanıyoruz
-        pc_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
-        pc_df_norm = pc_df[pc_cols].copy()
+        if pc_df.empty:
+            st.info("Parallel coordinates için yeterli veri bulunamadı.")
+        else:
+            # Parallel coordinates için sadece satış kolonlarını kullanıyoruz
+            pc_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
+            pc_norm = pc_df[pc_cols].copy()
 
-        # Normalizasyon (0-1 arası)
-        pc_df_norm = (pc_df_norm - pc_df_norm.min()) / (pc_df_norm.max() - pc_df_norm.min())
-        pc_df_norm["Name"] = pc_df["Name"].values
+            # Normalizasyon (0-1 arası)
+            pc_norm = (pc_norm - pc_norm.min()) / (pc_norm.max() - pc_norm.min())
 
-        fig_pc = px.parallel_coordinates(
-            pc_df_norm,
-            dimensions=pc_cols,
-            color="Global_Sales",
-            color_continuous_scale=px.colors.sequential.Viridis,
-            labels={col: col for col in pc_cols},
-            title="Parallel Coordinates of Regional vs Global Sales (Top Games)"
-        )
-        st.plotly_chart(fig_pc, use_container_width=True)
+            # Her eksen için dimension objesi oluştur - 0'ı tick'lerden çıkaralım
+            dimensions = []
+            for col in pc_cols:
+                dimensions.append(
+                    dict(
+                        range=[0, 1],
+                        label=col.replace("_", " "),
+                        values=pc_norm[col].tolist(),
+                        # 0'ı kaldırdık, sadece 0.2, 0.4, 0.6, 0.8, 1.0 gösteriyoruz
+                        tickvals=[0.2, 0.4, 0.6, 0.8, 1.0],
+                        ticktext=["0.2", "0.4", "0.6", "0.8", "1.0"],
+                    )
+                )
+
+            # Global_Sales değerlerini renk kodlaması için kullan
+            line_values = pc_df["Global_Sales"].astype(float).tolist()
+            
+            fig_pc = go.Figure(
+                data=go.Parcoords(
+                    line=dict(
+                        color=line_values,
+                        colorscale="Viridis",
+                        cmin=float(pc_df["Global_Sales"].min()),
+                        cmax=float(pc_df["Global_Sales"].max()),
+                        showscale=True,
+                        colorbar=dict(
+                            title=dict(text="Global Sales", font=dict(color="#f1f3f5")),
+                            tickfont=dict(color="#dee2e6"),
+                        ),
+                    ),
+                    dimensions=dimensions,
+                    labelfont=dict(color="#f1f3f5", size=14),
+                    tickfont=dict(color="#dee2e6", size=11),
+                )
+            )
+            
+            # Layout ayarları: Sol margin'i artırdık, label'lar için alan açtık
+            fig_pc.update_layout(
+                title=dict(
+                    text="Parallel Coordinates of Regional vs Global Sales (Top Games)",
+                    font=dict(color="#f1f3f5", size=16),
+                    x=0.5,
+                    xanchor="center",
+                ),
+                # Sol margin'i 120'ye çıkardık ki en soldaki eksen tam görünsün
+                margin=dict(l=120, r=100, t=100, b=100),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+            )
+            
+            # Not: Plotly Parcoords'ta label'lar varsayılan olarak üstte görünür
+            # ve bunu direkt değiştirmek mümkün değil. Ancak sol margin'i artırarak
+            # en soldaki eksenin tam görünmesini sağladık ve alt 0 tick'lerini kaldırdık.
+            
+            st.plotly_chart(fig_pc, use_container_width=True)
 
         # 7) Correlation Heatmap (sales kolonları arası ilişki)
         st.markdown("#### Correlation Heatmap: Sales Variables")
