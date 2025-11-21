@@ -199,8 +199,6 @@ data-visualization/
 
 ## 👥 Team Contributions
 
-*(Note: This section should be updated based on actual team composition and individual contributions)*
-
 - **Team Member 1 / Ömer:** Data preprocessing, basic visualizations (Line, Area, Bar charts), and dashboard layout design
 - **Team Member 2 / Ali:** Advanced visualizations (Sankey, Treemap, Parallel Coordinates) and interactivity implementation
 - **Team Member 3/ İsmail:** Advanced visualizations (Heatmap, Scatter Matrix, Sunburst), README documentation, and GitHub repository management

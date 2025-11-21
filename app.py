@@ -14,34 +14,34 @@ import plotly.graph_objects as go
 @st.cache_data
 def load_and_preprocess_data(csv_path: str, n_rows: int = 5000) -> pd.DataFrame:
     """
-    Video game sales dataset'ini yükler, ilk n_rows satırı alır
-    ve CEN445 ödev PDF'inde istenen preprocessing adımlarını uygular.
+    Loads the video game sales dataset, takes the first n_rows rows,
+    and applies the preprocessing steps
     """
-    # 1) CSV'yi yükle
+    # 1) Load CSV file
     df = pd.read_csv(csv_path)
 
-    # 2) Sadece ilk 5000 satırı kullan
+    # 2) Use only the first n_rows rows
     df = df.head(n_rows).copy()
 
-    # 3) Publisher'daki eksik değerleri 'Unknown' ile doldur
+    # 3) Fill missing values in Publisher column with 'Unknown'
     if "Publisher" in df.columns:
         df["Publisher"] = df["Publisher"].fillna("Unknown")
 
-    # 4) Year sütunundaki eksik değerleri at
-    #    Çünkü yıl bilgisi zaman serisi ve trend analizleri için kritik
+    # 4) Remove missing values in Year column
+    #    Year information is critical for time series and trend analysis
     if "Year" in df.columns:
         df = df.dropna(subset=["Year"])
         df["Year"] = df["Year"].astype(int)
-        # On yıllık dönem (Decade)
+        # Decade (10-year period)
         df["Decade"] = (df["Year"] // 10) * 10
 
-    # 5) Satış kolonlarını numeric yap
+    # 5) Convert sales columns to numeric
     sales_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
     for col in sales_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
 
-    # 6) Toplam bölgesel satış (NA+EU+JP+Other)
+    # 6) Total regional sales (NA+EU+JP+Other)
     if all(col in df.columns for col in ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]):
         df["Total_Regional_Sales"] = (
             df["NA_Sales"] +
@@ -50,7 +50,7 @@ def load_and_preprocess_data(csv_path: str, n_rows: int = 5000) -> pd.DataFrame:
             df["Other_Sales"]
         )
 
-    # 7) Negatif satışları sıfıra çek (güvenlik amaçlı)
+    # 7) Set negative sales values to zero (for safety)
     for col in sales_cols + ["Total_Regional_Sales"]:
         if col in df.columns:
             df.loc[df[col] < 0, col] = 0.0
@@ -63,26 +63,26 @@ def load_and_preprocess_data(csv_path: str, n_rows: int = 5000) -> pd.DataFrame:
 
 def filter_data(df: pd.DataFrame, genre: str, platforms: list, year_range: tuple, top_n: int | None):
     """
-    Sidebar filtrelerine göre veriyi süzer.
+    Filters the data according to sidebar filters.
     """
     filtered = df.copy()
 
-    # Genre filtresi
+    # Genre filter
     if genre != "All":
         filtered = filtered[filtered["Genre"] == genre]
 
-    # Platform filtresi
+    # Platform filter
     if platforms:
         filtered = filtered[filtered["Platform"].isin(platforms)]
 
-    # Yıl aralığı filtresi
+    # Year range filter
     if "Year" in filtered.columns:
         filtered = filtered[
             (filtered["Year"] >= year_range[0]) &
             (filtered["Year"] <= year_range[1])
         ]
 
-    # Global satışa göre sıralayıp top_n alma (opsiyonel)
+    # Sort by global sales and take top_n (optional)
     if top_n is not None and "Global_Sales" in filtered.columns:
         filtered = filtered.sort_values("Global_Sales", ascending=False).head(top_n)
 
@@ -111,19 +111,19 @@ def main():
         """
     )
 
-    # -- Veriyi yükle ve preprocess et
+    # Load and preprocess data
     df = load_and_preprocess_data("vgsales.csv", n_rows=5000)
 
     # ===========
-    # SIDEBAR FILTERS (En az 3 interaktif bileşen)
+    # SIDEBAR FILTERS (At least 3 interactive components)
     # ===========
     st.sidebar.header("Filters")
 
-    # Genre seçimi
+    # Genre selection
     genres = ["All"] + sorted(df["Genre"].dropna().unique().tolist())
     selected_genre = st.sidebar.selectbox("Genre", genres)
 
-    # Platform seçimi
+    # Platform selection
     platforms = sorted(df["Platform"].dropna().unique().tolist())
     selected_platforms = st.sidebar.multiselect(
         "Platforms",
@@ -131,7 +131,7 @@ def main():
         default=[]
     )
 
-    # Year aralığı
+    # Year range
     min_year = int(df["Year"].min())
     max_year = int(df["Year"].max())
     selected_year_range = st.sidebar.slider(
@@ -142,14 +142,14 @@ def main():
         step=1
     )
 
-    # Sadece top N oyunları gösterme seçeneği
+    # Option to show only top N games
     top_n_option = st.sidebar.selectbox(
         "Top N games by Global Sales (optional)",
         options=["All", 50, 100, 200]
     )
     top_n_value = None if top_n_option == "All" else int(top_n_option)
 
-    # Filtrelenmiş veri
+    # Filtered data
     filtered_df = filter_data(
         df,
         genre=selected_genre,
@@ -195,7 +195,7 @@ def main():
     with tab2:
         st.subheader("📈 Global Sales Over Time")
 
-        # 1) Line Chart: Year vs Global Sales (basit ama anlamlı)
+        # 1) Line Chart: Year vs Global Sales (simple but meaningful)
         yearly_sales = (
             filtered_df.groupby("Year", as_index=False)["Global_Sales"]
             .sum()
@@ -212,7 +212,7 @@ def main():
         fig_line.update_layout(hovermode="x unified")
         st.plotly_chart(fig_line, use_container_width=True)
 
-        # 2) Genre bazlı yıllık satış – stacked area veya bar
+        # 2) Genre-based annual sales – stacked area or bar chart
         st.subheader("🎭 Genre-wise Sales Over Time")
 
         genre_year = (
@@ -235,7 +235,7 @@ def main():
     with tab3:
         st.subheader("🏆 Top Games by Global Sales")
 
-        # 3) Bar Chart: En çok satan oyunlar
+        # 3) Bar Chart: Top-selling games
         top_games = (
             filtered_df.sort_values("Global_Sales", ascending=False)
             .head(20)
@@ -303,11 +303,11 @@ def main():
     with tab4:
         st.subheader("🚀 Advanced Visualizations")
 
-        # 5) Treemap: Genre -> Publisher bazlı global satış
+        # 5) Treemap: Genre -> Publisher based global sales
         st.markdown("#### Treemap: Genre / Publisher / Game Hierarchy")
 
         treemap_df = filtered_df.copy()
-        # Çok fazla publisher ve oyun varsa, biraz filtreleyelim (önce en çok satanlardan)
+        # If there are too many publishers and games, filter a bit (start with top sellers)
         treemap_df = treemap_df.sort_values("Global_Sales", ascending=False).head(500)
 
         fig_treemap = px.treemap(
@@ -318,23 +318,23 @@ def main():
         )
         st.plotly_chart(fig_treemap, use_container_width=True)
 
-        # 6) Parallel Coordinates: Bölgesel satışların karşılaştırılması
+        # 6) Parallel Coordinates: Comparison of regional sales
         st.markdown("#### Parallel Coordinates: Regional vs Global Sales")
 
-        # Sadece birkaç oyun alalım, yoksa grafik karışır
+        # Take only a few games, otherwise the chart becomes cluttered
         pc_df = filtered_df.sort_values("Global_Sales", ascending=False).head(200)
 
         if pc_df.empty:
-            st.info("Parallel coordinates için yeterli veri bulunamadı.")
+            st.info("Insufficient data for parallel coordinates.")
         else:
-            # Parallel coordinates için sadece satış kolonlarını kullanıyoruz
+            # For parallel coordinates, we only use sales columns
             pc_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
             pc_norm = pc_df[pc_cols].copy()
 
-            # Normalizasyon (0-1 arası)
+            # Normalization (0-1 range)
             pc_norm = (pc_norm - pc_norm.min()) / (pc_norm.max() - pc_norm.min())
 
-            # Her eksen için dimension objesi oluştur - 0'ı tick'lerden çıkaralım
+            # Create dimension object for each axis - remove 0 from ticks
             dimensions = []
             for col in pc_cols:
                 dimensions.append(
@@ -342,13 +342,13 @@ def main():
                         range=[0, 1],
                         label=col.replace("_", " "),
                         values=pc_norm[col].tolist(),
-                        # 0'ı kaldırdık, sadece 0.2, 0.4, 0.6, 0.8, 1.0 gösteriyoruz
+                        # Removed 0, only showing 0.2, 0.4, 0.6, 0.8, 1.0
                         tickvals=[0.2, 0.4, 0.6, 0.8, 1.0],
                         ticktext=["0.2", "0.4", "0.6", "0.8", "1.0"],
                     )
                 )
 
-            # Global_Sales değerlerini renk kodlaması için kullan
+            # Use Global_Sales values for color coding
             line_values = pc_df["Global_Sales"].astype(float).tolist()
             
             fig_pc = go.Figure(
@@ -370,7 +370,7 @@ def main():
                 )
             )
             
-            # Layout ayarları: Sol margin'i artırdık, label'lar için alan açtık
+            # Layout settings: Increased left margin, opened space for labels
             fig_pc.update_layout(
                 title=dict(
                     text="Parallel Coordinates of Regional vs Global Sales (Top Games)",
@@ -378,19 +378,19 @@ def main():
                     x=0.5,
                     xanchor="center",
                 ),
-                # Sol margin'i 120'ye çıkardık ki en soldaki eksen tam görünsün
+                # Increased left margin to 120 so the leftmost axis is fully visible
                 margin=dict(l=120, r=100, t=100, b=100),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
             )
             
-            # Not: Plotly Parcoords'ta label'lar varsayılan olarak üstte görünür
-            # ve bunu direkt değiştirmek mümkün değil. Ancak sol margin'i artırarak
-            # en soldaki eksenin tam görünmesini sağladık ve alt 0 tick'lerini kaldırdık.
+            # Note: In Plotly Parcoords, labels appear at the top by default
+            # and this cannot be changed directly. However, by increasing the left margin,
+            # we ensured the leftmost axis is fully visible and removed the bottom 0 ticks.
             
             st.plotly_chart(fig_pc, use_container_width=True)
 
-        # 7) Correlation Heatmap (sales kolonları arası ilişki)
+        # 7) Correlation Heatmap (relationships between sales columns)
         st.markdown("#### Correlation Heatmap: Sales Variables")
 
         corr_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales", "Total_Regional_Sales"]
@@ -404,14 +404,14 @@ def main():
         )
         st.plotly_chart(fig_heatmap, use_container_width=True)
 
-        # 8) Scatter Matrix: çok boyutlu satış ilişkileri
+        # 8) Scatter Matrix: multi-dimensional sales relationships
         st.markdown("#### Scatter Matrix: Regional Sales Relationships")
 
         sm_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
         sm_source = filtered_df[["Genre"] + sm_cols].dropna()
 
         if sm_source.empty:
-            st.info("Scatter matrix için yeterli veri bulunamadı.")
+            st.info("Insufficient data for scatter matrix.")
         else:
             sm_sample = sm_source.sample(min(400, len(sm_source)), random_state=42)
             fig_scatter_matrix = px.scatter_matrix(
@@ -427,7 +427,7 @@ def main():
             fig_scatter_matrix.for_each_xaxis(lambda ax: ax.update(side="bottom"))
             st.plotly_chart(fig_scatter_matrix, use_container_width=True)
 
-        # 9) Sunburst: Genre → Platform hiyerarşisi
+        # 9) Sunburst: Genre → Platform hierarchy
         st.markdown("#### Sunburst: Genre → Platform Sales Structure")
 
         sunburst_df = (
