@@ -229,6 +229,76 @@ def main():
         )
         st.plotly_chart(fig_area, use_container_width=True)
 
+    # -------------------
+    # TAB 3: TOP GAMES & DISTRIBUTIONS
+    # -------------------
+    with tab3:
+        st.subheader("🏆 Top Games by Global Sales")
+
+        # 3) Bar Chart: En çok satan oyunlar
+        top_games = (
+            filtered_df.sort_values("Global_Sales", ascending=False)
+            .head(20)
+        )
+
+        fig_bar = px.bar(
+            top_games,
+            x="Name",
+            y="Global_Sales",
+            color="Platform",
+            title="Top 20 Games by Global Sales",
+            hover_data=["Genre", "Publisher", "Year"],
+        )
+        fig_bar.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+        # 4) Genre ↔ Platform Sankey Flow
+        st.subheader("📦 Genre ↔ Platform Sales Flow")
+
+        import plotly.graph_objects as go
+
+        sankey_df = (
+            filtered_df.groupby(["Genre", "Platform"], as_index=False)["Global_Sales"]
+            .sum()
+            .sort_values("Global_Sales", ascending=False)
+            .head(200)
+        )
+        genre_nodes = sankey_df["Genre"].unique().tolist()
+        platform_nodes = sankey_df["Platform"].unique().tolist()
+        all_nodes = genre_nodes + platform_nodes
+        node_indices = {name: idx for idx, name in enumerate(all_nodes)}
+
+        palette = px.colors.qualitative.Set3
+        genre_colors = {
+            genre: palette[i % len(palette)] for i, genre in enumerate(genre_nodes)
+        }
+        node_colors = [
+            genre_colors.get(node, "#6c757d") for node in all_nodes
+        ]
+        default_link_color = "rgba(255, 255, 255, 0.25)"
+        link_hover_colors = sankey_df["Genre"].map(genre_colors).tolist()
+
+        sankey_fig = go.Figure(
+            go.Sankey(
+                arrangement="snap",
+                node=dict(
+                    pad=15,
+                    thickness=15,
+                    label=all_nodes,
+                    color=node_colors,
+                ),
+                link=dict(
+                    source=sankey_df["Genre"].map(node_indices).tolist(),
+                    target=sankey_df["Platform"].map(node_indices).tolist(),
+                    value=sankey_df["Global_Sales"].tolist(),
+                    color=[default_link_color] * len(sankey_df),
+                    hovercolor=link_hover_colors,
+                ),
+            )
+        )
+        sankey_fig.update_layout(title="Genre → Platform Global Sales Flow")
+        st.plotly_chart(sankey_fig, use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
