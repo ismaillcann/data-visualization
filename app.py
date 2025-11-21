@@ -299,6 +299,51 @@ def main():
         sankey_fig.update_layout(title="Genre → Platform Global Sales Flow")
         st.plotly_chart(sankey_fig, use_container_width=True)
 
+    # -------------------
+    # TAB 4: ADVANCED VISUALIZATIONS
+    # -------------------
+    with tab4:
+        st.subheader("🚀 Advanced Visualizations")
+
+        # 5) Treemap: Genre -> Publisher bazlı global satış
+        st.markdown("#### Treemap: Genre / Publisher / Game Hierarchy")
+
+        treemap_df = filtered_df.copy()
+        # Çok fazla publisher ve oyun varsa, biraz filtreleyelim (önce en çok satanlardan)
+        treemap_df = treemap_df.sort_values("Global_Sales", ascending=False).head(500)
+
+        fig_treemap = px.treemap(
+            treemap_df,
+            path=["Genre", "Publisher", "Name"],
+            values="Global_Sales",
+            title="Treemap of Global Sales by Genre → Publisher → Game",
+        )
+        st.plotly_chart(fig_treemap, use_container_width=True)
+
+        # 6) Parallel Coordinates: Bölgesel satışların karşılaştırılması
+        st.markdown("#### Parallel Coordinates: Regional vs Global Sales")
+
+        # Sadece birkaç oyun alalım, yoksa grafik karışır
+        pc_df = filtered_df.sort_values("Global_Sales", ascending=False).head(200)
+
+        # Parallel coordinates için sadece satış kolonlarını kullanıyoruz
+        pc_cols = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
+        pc_df_norm = pc_df[pc_cols].copy()
+
+        # Normalizasyon (0-1 arası)
+        pc_df_norm = (pc_df_norm - pc_df_norm.min()) / (pc_df_norm.max() - pc_df_norm.min())
+        pc_df_norm["Name"] = pc_df["Name"].values
+
+        fig_pc = px.parallel_coordinates(
+            pc_df_norm,
+            dimensions=pc_cols,
+            color="Global_Sales",
+            color_continuous_scale=px.colors.sequential.Viridis,
+            labels={col: col for col in pc_cols},
+            title="Parallel Coordinates of Regional vs Global Sales (Top Games)"
+        )
+        st.plotly_chart(fig_pc, use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
