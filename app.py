@@ -4,6 +4,8 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
 
 # =========================
 # 1) DATA LOADING & PREPROCESSING
@@ -193,8 +195,6 @@ def main():
     with tab2:
         st.subheader("📈 Global Sales Over Time")
 
-        import plotly.express as px
-
         # 1) Line Chart: Year vs Global Sales (basit ama anlamlı)
         yearly_sales = (
             filtered_df.groupby("Year", as_index=False)["Global_Sales"]
@@ -254,8 +254,6 @@ def main():
 
         # 4) Genre ↔ Platform Sankey Flow
         st.subheader("📦 Genre ↔ Platform Sales Flow")
-
-        import plotly.graph_objects as go
 
         sankey_df = (
             filtered_df.groupby(["Genre", "Platform"], as_index=False)["Global_Sales"]
