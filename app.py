@@ -87,5 +87,79 @@ def filter_data(df: pd.DataFrame, genre: str, platforms: list, year_range: tuple
     return filtered
 
 
+# =========================
+# 2) STREAMLIT APP LAYOUT
+# =========================
+
+def main():
+    st.set_page_config(
+        page_title="Video Game Sales Dashboard",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
+    st.title("🎮 Video Game Sales Exploratory Dashboard")
+    st.markdown(
+        """
+        This dashboard was created for the CEN445 *Introduction to Data Visualization* assignment using the **video game sales** dataset.
+        
+        - Dataset: Kaggle - Video Game Sales  
+        - Number of rows: First 5,000 records  
+        - Purpose: To generate meaningful insights using different visualization techniques
+        """
+    )
+
+    # -- Veriyi yükle ve preprocess et
+    df = load_and_preprocess_data("vgsales.csv", n_rows=5000)
+
+    # ===========
+    # SIDEBAR FILTERS (En az 3 interaktif bileşen)
+    # ===========
+    st.sidebar.header("Filters")
+
+    # Genre seçimi
+    genres = ["All"] + sorted(df["Genre"].dropna().unique().tolist())
+    selected_genre = st.sidebar.selectbox("Genre", genres)
+
+    # Platform seçimi
+    platforms = sorted(df["Platform"].dropna().unique().tolist())
+    selected_platforms = st.sidebar.multiselect(
+        "Platforms",
+        platforms,
+        default=[]
+    )
+
+    # Year aralığı
+    min_year = int(df["Year"].min())
+    max_year = int(df["Year"].max())
+    selected_year_range = st.sidebar.slider(
+        "Year Range",
+        min_year,
+        max_year,
+        (min_year, max_year),
+        step=1
+    )
+
+    # Sadece top N oyunları gösterme seçeneği
+    top_n_option = st.sidebar.selectbox(
+        "Top N games by Global Sales (optional)",
+        options=["All", 50, 100, 200]
+    )
+    top_n_value = None if top_n_option == "All" else int(top_n_option)
+
+    # Filtrelenmiş veri
+    filtered_df = filter_data(
+        df,
+        genre=selected_genre,
+        platforms=selected_platforms,
+        year_range=selected_year_range,
+        top_n=top_n_value
+    )
+
+    st.sidebar.markdown(f"**Filtered rows:** {len(filtered_df)}")
+
+    st.write("Filters applied! Data ready for visualization.")
+
+
 if __name__ == "__main__":
-    st.write("Data loading functions ready!")
+    main()
